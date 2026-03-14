@@ -20,7 +20,7 @@ const userSchema = new Schema({
         trim: true,
     },
 
-    fullname:{
+    fullName:{
         type: String,
         required: true,
         trim: true,
@@ -38,7 +38,7 @@ const userSchema = new Schema({
 
     watchHistory: [
         {
-            typr: Schema.Types.ObjectId,
+            type: Schema.Types.ObjectId,
             ref: "Video"
         }
     ],
@@ -59,7 +59,7 @@ const userSchema = new Schema({
         if(!this.isModified("password")) return next();
 
        this.password = await bcrypt.hash(this.password, 10) 
-       next()
+       
     })
 
     userSchema.methods.isPasswordCorrect = async function(password){
