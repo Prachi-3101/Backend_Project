@@ -55,12 +55,15 @@ const userSchema = new Schema({
         timestamps: true
     })
 
-    userSchema.pre("save", async function (next) {
-        if(!this.isModified("password")) return next();
+    userSchema.pre("save", async function () {
+    if (!this.isModified("password")) return;
 
-       this.password = await bcrypt.hash(this.password, 10) 
-       
-    })
+    try {
+        this.password = await bcrypt.hash(this.password, 10);
+    } catch (error) {
+        throw new Error("Password hashing failed");
+    }
+});
 
     userSchema.methods.isPasswordCorrect = async function(password){
          return await bcrypt.compare(password, this.password)
@@ -71,7 +74,7 @@ const userSchema = new Schema({
             _id: this._id,
             email: this.email,
             username: this.username,
-            fullname: this.fullname
+            fullName: this.fullname
         }, process.env.ACCESS_TOKEN_SECRET,
     {
         expiresIn: process.env.ACCESS_TOKEN_EXPIRY
