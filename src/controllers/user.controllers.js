@@ -76,7 +76,7 @@ const registerUser = asyncHandler( async(req,res)=>{
      }
 
      return res.status(201).json(
-        new ApiResoponse(200, createdUser, "User registered successfully!")
+        new ApiResponse(200, createdUser, "User registered successfully!")
      )
 
     })
@@ -113,7 +113,7 @@ const registerUser = asyncHandler( async(req,res)=>{
       return res
       .status(200)
       .cookie("accessToken",accessToken,options)
-      .cookie("refreshToken",refreshToken,options)
+      .cookie("refreshToken",newRefreshToken,options)
       .json(
          new ApiResponse(
             200,
@@ -171,7 +171,7 @@ const registerUser = asyncHandler( async(req,res)=>{
          }
 
          const options = {
-            hhtpOnly: true,
+            httpOnly: true,
             secure: true 
          }
 
@@ -229,8 +229,13 @@ const registerUser = asyncHandler( async(req,res)=>{
          throw new ApiError(400,"All fields are required")
       }
 
+      const userId = req.user?._id;
+      if(!userId){
+         throw new ApiError(400,"not authorized")
+      }
+
       const user = await User.findByIdAndUpdate(
-         req.user?._id,
+         userId,
          {
             $set: {
                fullName: fullName,
@@ -252,31 +257,20 @@ const registerUser = asyncHandler( async(req,res)=>{
          throw new ApiError(400, "Avatar file is missing")
       }
 
-     const deleteAvatar = asyncHandler(async(req,res)=>{
-      const user = await User.findByIdAndDelete(
-         req.user?._id,
-         {
-            $unset: {
-               avatar: avatar.url 
-            }
-         },  {new: true}
-      ).select("-password");
-
-      return res 
-      .status(200)
-      .json(
-         ApiResponse(200, "Avatar deleted")
-      )
-     })
 
       const avatar = await uploadOnCloudinary(avatarLocalPath)
 
-      if(!avatar.url){
+      if(!avatar?.url){
          throw new ApiError(400, "Error while uploading avatar")
       }
 
+      const userId = req.user?._id;
+      if(!userId){
+         throw new ApiError(400,"not authorized")
+      }
+
       const user = await User.findByIdAndUpdate(
-         req.user?._id,
+         userId,
          {
             $set: {
                avatar: avatar.url 
@@ -292,6 +286,28 @@ const registerUser = asyncHandler( async(req,res)=>{
       )
      })
 
+     const deleteAvatar = asyncHandler(async(req,res)=>{
+
+      const userId = req.user?._id;
+      if(!userId){
+         throw new ApiError(400,"not authorized")
+      }
+      const user = await User.findByIdAndUpdate(
+         userId,
+         {
+            $unset: {
+               avatar: 1
+            }
+         },  {new: true}
+      ).select("-password");
+
+      return res 
+      .status(200)
+      .json(
+         new ApiResponse(200, {},"Avatar deleted")
+      )
+     })
+
      const updateUserCoverImage = asyncHandler(async(req,res)=>{
       const coverImgLocalPath = req.file?.path 
 
@@ -299,26 +315,19 @@ const registerUser = asyncHandler( async(req,res)=>{
          throw new ApiError(400, "Cover image file is missing")
       }
 
-      const deleteCoverImage = asyncHandler(async(req,res)=>{
-         const user = await User.findByIdAndDelete(
-            req.user?._id,
-            {
-               $unset: {
-                  coverImage: coverImage.url 
-               }
-            },
-            {new: true}
-         ).select("-password")
-      })
-
       const coverImage = await uploadOnCloudinary(coverImgLocalPath)
 
       if(!coverImage.url){
          throw new ApiError(400, "Error while uploading on avatar")
       }
 
+      const userId = req.user?._id;
+      if(!userId){
+         throw new ApiError(400,"not authorized")
+      }
+
       const user = await User.findByIdAndUpdate(
-         req.user?._id,
+         userId,
          {
             $set: {
                coverImage: coverImage.url 
@@ -333,6 +342,30 @@ const registerUser = asyncHandler( async(req,res)=>{
          new ApiResponse(200,user,"Cover image updated successfully")
       )
      })
+
+     const deleteCoverImage = asyncHandler(async(req,res)=>{
+
+      const userId = req.user?._id;
+      if(!userId){
+         throw new ApiError(400,"not authorized")
+      }
+         const user = await User.findByIdAndUpdate(
+            userId,
+            {
+               $unset: {
+                  coverImage: 1
+               }
+            },
+            {new: true}
+         ).select("-password")
+
+         return res 
+      .status(200)
+      .json(
+         new ApiResponse(200, {},"Cover image deleted")
+      )
+      })
+
 
      const getUserChannelProfile = asyncHandler(async(req,res) => {
       const {username} = req.params
@@ -358,7 +391,7 @@ const registerUser = asyncHandler( async(req,res)=>{
          {
             $lookup: {
                from: "subscriptions",
-               localField: "-id",
+               localField: "_id",
                foreignField: "subscriber",
                as: "subscribedTo" 
             }
